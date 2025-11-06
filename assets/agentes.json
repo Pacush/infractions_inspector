@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "clave": 132,
+        "name": "Pedro Sevilla",
+        "jefatura_id": 1,
+        "password": "ASDF2"
+    },
+    {
+        "id": 2,
+        "clave": 123,
+        "name": "Esteban Gutierrez",
+        "jefatura_id": 1,
+        "password": "ASDF3"
+    },
+    {
+        "id": 3,
+        "clave": 145,
+        "name": "María López",
+        "jefatura_id": 2,
+        "password": "ASDF5"
+    },
+    {
+        "id": 4,
+        "clave": 156,
+        "name": "Juan Pérez",
+        "jefatura_id": 3,
+        "password": "ASDF5324"
+    },
+    {
+        "id": 5,
+        "clave": 178,
+        "name": "Ana Torres",
+        "jefatura_id": 4,
+        "password": "XVDFAS"
+    }
+]

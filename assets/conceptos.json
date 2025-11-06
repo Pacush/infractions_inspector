@@ -1,0 +1,27 @@
+[
+    {
+        "id": 1,
+        "name": "Por estacionarse en vía pública",
+        "legal_basis": "Artículo 1 fracción IX del Reglamento de Tránsito"
+    },
+    {
+        "id": 2,
+        "name": "Por estacionarse en vía pública",
+        "legal_basis": "Artículo 1 fracción IX del Reglamento de Obras Públicas"
+    },
+    {
+        "id": 3,
+        "name": "Por tirar basura en la calle",
+        "legal_basis": "Artículo 5 fracción II del Reglamento de Medio Ambiente"
+    },
+    {
+        "id": 4,
+        "name": "Por vender sin permiso",
+        "legal_basis": "Artículo 8 fracción IV del Reglamento de Comercio"
+    },
+    {
+        "id": 5,
+        "name": "Por obstruir la vía pública",
+        "legal_basis": "Artículo12 fracción I del Reglamento de Tianguis"
+    }
+]

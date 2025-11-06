@@ -1,0 +1,22 @@
+[
+    {
+        "id": 1,
+        "name": "Medio Ambiente"
+    },
+    {
+        "id": 2,
+        "name": "Comercios"
+    },
+    {
+        "id": 3,
+        "name": "Tianguis"
+    },
+    {
+        "id": 4,
+        "name": "Transporte"
+    },
+    {
+        "id": 5,
+        "name": "Seguridad Pública"
+    }
+]
