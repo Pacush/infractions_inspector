@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
@@ -67,8 +68,8 @@ class DBController {
     await db.execute('''
       CREATE TABLE Infractions (
         id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        identification TEXT NOT NULL,
+        visitado_name TEXT NOT NULL,
+        visitado_identification TEXT NOT NULL,
         establishment_name TEXT NOT NULL,
         establishment_business TEXT NOT NULL,
         establishment_address TEXT NOT NULL,
@@ -76,6 +77,10 @@ class DBController {
         concept_id INTEGER NOT NULL,
         testigo1 TEXT NOT NULL,
         testigo2 TEXT NOT NULL,
+        agent_id INTEGER NOT NULL,
+        timestamp TEXT NOT NULL,
+
+        FOREIGN KEY (agent_id) REFERENCES Agents(id) ON DELETE CASCADE,
         FOREIGN KEY (concept_id) REFERENCES Concepts(id) ON DELETE CASCADE
       )
     ''');
@@ -113,8 +118,8 @@ class DBController {
     };
 
     await db.insert('Infractions', {
-      'name': 'José Sánchez',
-      'identification': '12345678A',
+      'visitado_name': 'José Sánchez',
+      'visitado_identification': '12345678A',
       'establishment_name': 'SuSuper',
       'establishment_business': 'Venta de Abarrotes',
       'establishment_address': jsonEncode(sampleAddress),
@@ -122,6 +127,8 @@ class DBController {
       'concept_id': 1,
       'testigo1': 'Juan Pérez',
       'testigo2': 'María García',
+      'agent_id': 1,
+      'timestamp': DateTime.now().toIso8601String(),
     });
   }
 

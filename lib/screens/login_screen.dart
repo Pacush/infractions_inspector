@@ -36,30 +36,37 @@ class _LoginScreenState extends State<LoginScreen> {
     final String password = passwordController.text;
 
     final dbController = DBController.instance;
+
     final agente = await dbController.getAgentByClave(clave);
-    final agenteClave = agente?['clave'].toString();
-    String agenteId = agente!['id'].toString();
+    if (agente != null) {
+      final agenteClave = agente['clave'].toString();
+      final agenteId = agente['id'].toString();
 
-    final agentePassword = agente['password'];
-    // ----- LÓGICA DE AUTENTICACIÓN SIMULADA -----
-    if (clave == agenteClave && password == agentePassword) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('loggedUserName', agente['name']);
-        await prefs.setString('loggedUserId', agenteId);
-        await prefs.setString('loggedUserClave', clave);
+      final agentePassword = agente['password'];
+      // ----- LÓGICA DE AUTENTICACIÓN SIMULADA -----
+      if (clave == agenteClave && password == agentePassword) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('loggedUserName', agente['name']);
+          await prefs.setString('loggedUserId', agenteId);
+          await prefs.setString('loggedUserClave', clave);
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => MenuScreen()),
-        );
-      } catch (e) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => MenuScreen()),
+          );
+        } catch (e) {
+          setState(() {
+            errorMessage = "Error al guardar la sesión: $e";
+          });
+        }
+      } else {
         setState(() {
-          errorMessage = "Error al guardar la sesión: $e";
+          errorMessage = "Contraseña incorrecta";
         });
       }
     } else {
       setState(() {
-        errorMessage = "Clave o contraseña incorrecta";
+        errorMessage = "Clave incorrecta";
       });
     }
 

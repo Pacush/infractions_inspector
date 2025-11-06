@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'login_screen.dart'; // Importamos el login para navegar de regreso
+import 'crear_infraccion_screen.dart';
+import 'login_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -12,6 +13,8 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   String _userClave = '';
+  String _userId = '';
+  String _userName = '';
 
   @override
   void initState() {
@@ -19,20 +22,23 @@ class _MenuScreenState extends State<MenuScreen> {
     _loadUserId();
   }
 
-  // Método para cargar el ID y mostrarlo (opcional)
   Future<void> _loadUserId() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _userClave = prefs.getString('loggedUserClave') ?? 'Usuario Desconocido';
+      _userId = prefs.getString('loggedUserId') ?? '';
+      _userName = prefs.getString('loggedUserName') ?? '';
     });
   }
 
-  // Método para cerrar sesión
+  // Cerrar sesión
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
 
     // 1. Borrar la clave de SharedPreferences
     await prefs.remove('loggedUserClave');
+    await prefs.remove('loggedUserId');
+    await prefs.remove('loggedUserName');
 
     // 2. Regresar a la pantalla de Login
     // Usamos pushReplacement para que no pueda "volver" al menú
@@ -54,7 +60,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Menú',
@@ -64,7 +70,6 @@ class _MenuScreenState extends State<MenuScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 8),
                   Text(
                     'Usuario: $_userClave',
                     style: TextStyle(color: Colors.white, fontSize: 16),
@@ -76,8 +81,12 @@ class _MenuScreenState extends State<MenuScreen> {
               leading: Icon(Icons.edit_document),
               title: Text('Crear infracción'),
               onTap: () {
-                // TODO: Navigate to create infraction screen
-                Navigator.pop(context); // Close drawer
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => CrearInfraccionScreen(),
+                  ),
+                );
+                //Navigator.pop(context); // Close drawer
                 // Add navigation code here
               },
             ),

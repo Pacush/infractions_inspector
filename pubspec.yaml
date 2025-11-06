@@ -32,3 +32,4 @@ flutter:
     - assets/jefaturas.json
     - assets/agentes.json
     - assets/conceptos.json
+    - assets/reglamento.txt
