@@ -174,4 +174,4 @@
   'Artículo 173',
   'Artículo 174',
   'Artículo 175'
-];
+]
