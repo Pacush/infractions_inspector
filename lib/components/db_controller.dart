@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
@@ -70,18 +69,18 @@ class DBController {
         id INTEGER PRIMARY KEY,
         visitado_name TEXT NOT NULL,
         visitado_identification TEXT NOT NULL,
+        num_identificacion TEXT NOT NULL,
         establishment_name TEXT NOT NULL,
         establishment_business TEXT NOT NULL,
         establishment_address TEXT NOT NULL,
         reglamento TEXT NOT NULL,
-        concept_id INTEGER NOT NULL,
+        concept_ids TEXT NOT NULL,
         testigo1 TEXT NOT NULL,
         testigo2 TEXT NOT NULL,
         agent_id INTEGER NOT NULL,
         timestamp TEXT NOT NULL,
 
         FOREIGN KEY (agent_id) REFERENCES Agents(id) ON DELETE CASCADE,
-        FOREIGN KEY (concept_id) REFERENCES Concepts(id) ON DELETE CASCADE
       )
     ''');
 
@@ -107,7 +106,6 @@ class DBController {
       await db.insert('Concepts', concepto);
     }
 
-    // Insert a sample Infraction using parameterized insert and valid JSON for the address
     final sampleAddress = {
       'calle': 'Paraiso',
       'ext_num': 95,
@@ -119,12 +117,13 @@ class DBController {
 
     await db.insert('Infractions', {
       'visitado_name': 'José Sánchez',
-      'visitado_identification': '12345678A',
+      'visitado_identification': 'INE',
+      'num_identificacion': '1234ADSF',
       'establishment_name': 'SuSuper',
       'establishment_business': 'Venta de Abarrotes',
       'establishment_address': jsonEncode(sampleAddress),
       'reglamento': jsonEncode(["12", "15"]),
-      'concept_id': 1,
+      'concept_ids': [1],
       'testigo1': 'Juan Pérez',
       'testigo2': 'María García',
       'agent_id': 1,
@@ -132,23 +131,19 @@ class DBController {
     });
   }
 
-  /// Verifica si una jefatura existe con ese id.
-  /// Retorna un Map de la jefatura si lo encuentra, o null si falla.
+  /// Busca una jefatura por el id.
   Future<Map<String, dynamic>?> getJefatura(int id) async {
     final db = await instance.database;
     final res = await db.query('Departments', where: 'id = ?', whereArgs: [id]);
 
     if (res.isNotEmpty) {
-      // Si hay resultado, retorna el primer usuario (debería ser único)
       return res.first;
     } else {
-      // Si no hay resultado, retorna null
       return null;
     }
   }
 
-  /// Verifica si un usuario existe con esa clave.
-  /// Retorna un Map de la clave si lo encuentra, o null si falla.
+  /// Busca a un agente por la clave
   Future<Map<String, dynamic>?> getAgentByClave(String clave) async {
     final db = await instance.database;
     final res = await db.query(
@@ -156,14 +151,9 @@ class DBController {
       where: 'clave = ?',
       whereArgs: [clave],
     );
-
-    //final res = await db.rawQuery("SELECT * FROM Agents WHERE clave = $clave");
-
     if (res.isNotEmpty) {
-      // Si hay resultado, retorna el primer usuario (debería ser único)
       return res.first;
     } else {
-      // Si no hay resultado, retorna null
       return null;
     }
   }

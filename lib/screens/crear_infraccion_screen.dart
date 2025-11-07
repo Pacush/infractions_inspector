@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infractions_inspector/components/db_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CrearInfraccionScreen extends StatefulWidget {
   const CrearInfraccionScreen({super.key});
@@ -42,7 +43,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     'Restaurante',
     'Cafetería',
     'Otro',
-  ]; //TODO: Make
+  ]; //TODO: Make dynamic
   List<String> reglamentos = [];
   List<Map<String, dynamic>> conceptos = [];
   List<Map<String, dynamic>> agentes = [];
@@ -82,10 +83,152 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     }
   }
 
+  Future<void> updateAllowedReglamentos(List conceptos) async {
+    reglamentos.clear();
+    int i = conceptos.length;
+    List<String> newReglamentos = [];
+    while (i > 0) {
+      String reglamento = conceptos[i]['legal_basis'].toString();
+      List<String> parts = reglamento.split(RegExp(r'\s+'));
+      String articulo = parts.take(2).join(' ');
+      newReglamentos.add(articulo);
+    }
+    setState(() {
+      reglamentos = newReglamentos;
+    });
+  }
+
+  Future<void> _showReglamentosDialog() async {
+    final List<String> tempSelected = List<String>.from(
+      reglamentosSeleccionados,
+    );
+
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Seleccionar reglamentos'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return Scrollbar(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: reglamentos.length,
+                    itemBuilder: (context, index) {
+                      final r = reglamentos[index];
+                      final checked = tempSelected.contains(r);
+                      return CheckboxListTile(
+                        value: checked,
+                        title: Text(r),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (bool? v) {
+                          setState(() {
+                            if (v == true) {
+                              if (!tempSelected.contains(r)) {
+                                tempSelected.add(r);
+                              }
+                            } else {
+                              // allow unselecting
+                              tempSelected.remove(r);
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(tempSelected),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        reglamentosSeleccionados = result;
+      });
+    }
+  }
+
+  Future<void> _showConceptosDialog() async {
+    int? tempSelected =
+        conceptosSeleccionados.isNotEmpty ? conceptosSeleccionados.first : null;
+
+    final result = await showDialog<int?>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Seleccionar concepto principal'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return Scrollbar(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: conceptos.length,
+                    itemBuilder: (context, index) {
+                      final c = conceptos[index];
+                      final id = c['id'] as int?;
+                      final name = c['name']?.toString() ?? 'Concepto $index';
+                      final subtitle = c['legal_basis']?.toString();
+                      return RadioListTile<int>(
+                        value: id ?? index,
+                        groupValue: tempSelected,
+                        title: Text(name),
+                        subtitle: subtitle != null ? Text(subtitle) : null,
+                        onChanged: (int? v) {
+                          setState(() {
+                            tempSelected = v;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(tempSelected),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        conceptosSeleccionados = [result];
+      });
+    }
+  }
+
   Future<void> guardarInfraccion() async {
     if (!formKey.currentState!.validate()) {
       return;
     }
+
+    final prefs = await SharedPreferences.getInstance();
 
     setState(() {
       isSaving = true;
@@ -101,22 +244,22 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         'entrecalle2': entrecalle2Controller.text,
       };
 
-      // TODO: Get logged in agent ID
       final infraccionData = {
-        'name': nombreVisitadoController.text,
-        'identification_type': tipoIdentificacion,
-        'identification': numIdentificacionController.text,
+        'visitado_name': nombreVisitadoController.text,
+        'visitado_identification': tipoIdentificacion,
+        'num_identificacion': numIdentificacionController.text,
         'establishment_name': nombreEstablecimientoController.text,
         'establishment_business': giroSeleccionado,
         'establishment_address': jsonEncode(addressData),
         'reglamento': jsonEncode(reglamentosSeleccionados),
+        // Save the primary concept id (first selected) to match DB schema (INTEGER FK)
         'concept_id':
             conceptosSeleccionados.isNotEmpty
-                ? conceptosSeleccionados[0]
+                ? conceptosSeleccionados.first
                 : null,
         'testigo1': testigo1Controller.text,
         'testigo2': testigo2Controller.text,
-        'agent_id': 1, // TODO: Get from session
+        'agent_id': prefs.getString('loggedUserId'),
         'timestamp': DateTime.now().toIso8601String(),
       };
 
@@ -132,6 +275,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+      print(e);
     } finally {
       setState(() {
         isSaving = false;
@@ -321,31 +465,134 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               // 4. Datos de la infracción
               SizedBox(height: 24),
               buildSectionTitle('Datos de la infracción'),
-              // Reglamentos (Wrap with chips for multiple selection)
-              Wrap(
-                spacing: 8.0,
-                children:
-                    reglamentos.map((reglamento) {
-                      final isSelected = reglamentosSeleccionados.contains(
-                        reglamento,
-                      );
-                      return FilterChip(
-                        label: Text(reglamento),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              reglamentosSeleccionados.add(reglamento);
-                            } else {
-                              reglamentosSeleccionados.remove(reglamento);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
+              // Reglamentos (opens a dialog to select multiple reglamentos)
+              GestureDetector(
+                onTap: _showReglamentosDialog,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        "Reglamentos",
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child:
+                          reglamentosSeleccionados.isEmpty
+                              ? Row(
+                                children: const [
+                                  Expanded(
+                                    child: Text('Seleccione reglamentos'),
+                                  ),
+                                  Icon(Icons.arrow_drop_down),
+                                ],
+                              )
+                              : Row(
+                                children: [
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children:
+                                            reglamentosSeleccionados
+                                                .map(
+                                                  (r) => Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          right: 8.0,
+                                                        ),
+                                                    child: Chip(label: Text(r)),
+                                                  ),
+                                                )
+                                                .toList(),
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_drop_down),
+                                ],
+                              ),
+                    ),
+                  ],
+                ),
               ),
               SizedBox(height: 16),
-              // TODO: Add conceptos selection based on selected reglamentos
+              // Conceptos (opens a dialog to select one or more conceptos from DB)
+              GestureDetector(
+                onTap: _showConceptosDialog,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        "Conceptos",
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child:
+                          conceptosSeleccionados.isEmpty
+                              ? Row(
+                                children: const [
+                                  Expanded(child: Text('Seleccione conceptos')),
+                                  Icon(Icons.arrow_drop_down),
+                                ],
+                              )
+                              : Row(
+                                children: [
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children:
+                                            conceptosSeleccionados.map((id) {
+                                              final concept = conceptos
+                                                  .firstWhere(
+                                                    (c) => c['id'] == id,
+                                                    orElse:
+                                                        () => {
+                                                          'name': id.toString(),
+                                                        },
+                                                  );
+                                              return Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 8.0,
+                                                ),
+                                                child: Chip(
+                                                  label: Text(
+                                                    concept['name'].toString(),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_drop_down),
+                                ],
+                              ),
+                    ),
+                  ],
+                ),
+              ),
 
               // Testigos
               SizedBox(height: 16),
