@@ -83,7 +83,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     }
   }
 
-  Future<void> updateAllowedReglamentos(List conceptos) async {
+  Future<void> updateAllowedConceptos(List reglamentos) async {
     reglamentos.clear();
     int i = conceptos.length;
     List<String> newReglamentos = [];
@@ -98,7 +98,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     });
   }
 
-  Future<void> _showReglamentosDialog() async {
+  Future<void> showReglamentosSelector() async {
     final List<String> tempSelected = List<String>.from(
       reglamentosSeleccionados,
     );
@@ -466,18 +466,16 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 24),
               buildSectionTitle('Datos de la infracción'),
               // Reglamentos (opens a dialog to select multiple reglamentos)
+              Text(
+                "Reglamentos",
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               GestureDetector(
-                onTap: _showReglamentosDialog,
+                onTap: showReglamentosSelector,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Text(
-                        "Reglamentos",
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
+                    Padding(padding: const EdgeInsets.only(bottom: 8.0)),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         vertical: 12,
@@ -527,18 +525,13 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               ),
               SizedBox(height: 16),
               // Conceptos (opens a dialog to select one or more conceptos from DB)
+              Text("Conceptos", style: Theme.of(context).textTheme.titleMedium),
               GestureDetector(
                 onTap: _showConceptosDialog,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Text(
-                        "Conceptos",
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
+                    Padding(padding: const EdgeInsets.only(bottom: 8.0)),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         vertical: 12,
