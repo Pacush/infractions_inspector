@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infractions_inspector/components/db_controller.dart';
+import 'package:infractions_inspector/components/pdf_generator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CrearInfraccionScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   final formKey = GlobalKey<FormState>();
   final scrollController = ScrollController();
   bool isSaving = false;
+  Map<String, dynamic>? lastSavedInfraccion;
+  int? lastSavedInfraccionId;
 
   // Form controllers
   final nombreVisitadoController = TextEditingController();
@@ -242,6 +245,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     }
 
     final prefs = await SharedPreferences.getInstance();
+    final db = await DBController.instance.database;
 
     setState(() {
       isSaving = true;
@@ -258,6 +262,11 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         'entrecalle2': entrecalle2Controller.text,
       };
 
+      // compute folio: inspectorId/secuencial (secuencial = max existing + 1)
+      final agentIdStr = prefs.getString('loggedUserId');
+      final agentId = int.tryParse(agentIdStr ?? '') ?? 0;
+      final folio = await DBController.nextFolioForAgent(agentId);
+
       final infraccionData = {
         'visitado_name': nombreVisitadoController.text,
         'visitado_identification': tipoIdentificacion,
@@ -273,21 +282,22 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         'concept_ids':
             conceptosSeleccionados.isNotEmpty
                 ? jsonEncode(conceptosSeleccionados)
-                : null,
+                : jsonEncode([]),
+        'folio': folio,
         'testigo1': testigo1Controller.text,
         'testigo2': testigo2Controller.text,
         'agent_id': prefs.getString('loggedUserId'),
         'timestamp': DateTime.now().toIso8601String(),
       };
 
-      final db = await DBController.instance.database;
       final id = await db.insert('Infractions', infraccionData);
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Infracción guardada con ID: $id')),
       );
 
-      // TODO: Show generate PDF button
+      // store last saved data for PDF generation
+      lastSavedInfraccionId = id as int? ?? id;
+      lastSavedInfraccion = Map<String, dynamic>.from(infraccionData);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -301,7 +311,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   }
 
   Future<void> mostrarVistaPrevia() async {
-    // TODO: Generate and show PDF preview
+    await previewPdf();
   }
 
   Future<void> showAgentSelector(TextEditingController controller) async {
@@ -364,6 +374,41 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     super.dispose();
   }
 
+  Future<void> previewPdf() async {
+    final prefs = await SharedPreferences.getInstance();
+    final agentIdStr = prefs.getString('loggedUserId');
+    final agentId = int.tryParse(agentIdStr ?? '') ?? 0;
+    final folio = await DBController.nextFolioForAgent(agentId);
+
+    final data = {
+      'visitado_name': nombreVisitadoController.text,
+      'visitado_identification': tipoIdentificacion,
+      'num_identificacion': numIdentificacionController.text,
+      'establishment_name': nombreEstablecimientoController.text,
+      'establishment_business':
+          giroSeleccionado == 'Otro'
+              ? giroOtroController.text
+              : giroSeleccionado,
+      'establishment_address': jsonEncode({
+        'calle': calleController.text,
+        'ext_num': numExtController.text,
+        'interior_num': numIntController.text,
+        'colonia': coloniaController.text,
+        'entrecalle1': entrecalle1Controller.text,
+        'entrecalle2': entrecalle2Controller.text,
+      }),
+      'reglamento': jsonEncode(reglamentosSeleccionados),
+      'concept_ids': jsonEncode(conceptosSeleccionados),
+      'testigo1': testigo1Controller.text,
+      'testigo2': testigo2Controller.text,
+      'agent_id': agentId,
+      'folio': folio,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    PdfGenerator.showPdfPreview(context, data);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -382,6 +427,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         key: formKey,
         child: SingleChildScrollView(
           controller: scrollController,
+          
           padding: EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -761,21 +807,39 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 32),
               Row(
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: Icon(Icons.preview),
-                      label: Text('Vista Previa'),
-                      onPressed: isSaving ? null : mostrarVistaPrevia,
+                  if (lastSavedInfraccion == null) ...[
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.preview),
+                        label: Text('Vista Previa'),
+                        onPressed: isSaving ? null : previewPdf,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: Icon(Icons.save),
-                      label: Text(isSaving ? 'Guardando...' : 'Guardar'),
-                      onPressed: isSaving ? null : guardarInfraccion,
+
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.save),
+                        label: Text(isSaving ? 'Guardando...' : 'Guardar'),
+                        onPressed: isSaving ? null : guardarInfraccion,
+                      ),
                     ),
-                  ),
+                  ],
+                  if (lastSavedInfraccion != null) ...[
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.picture_as_pdf),
+                        label: Text('Generar PDF'),
+                        onPressed: () {
+                          PdfGenerator.showPdfPreview(
+                            context,
+                            lastSavedInfraccion!,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],

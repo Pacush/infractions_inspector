@@ -37,6 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final dbController = DBController.instance;
 
+    /*final db = await DBController.instance.database;
+    deleteDatabase(db.path);*/
+
     final agente = await dbController.getAgentByClave(clave);
     if (agente != null) {
       final agenteClave = agente['clave'].toString();

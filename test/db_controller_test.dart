@@ -32,8 +32,13 @@ void main() {
   });
 
   test('hola', () async {
-    final dbcontroller = DBController.instance;
-    final res = await dbcontroller.listTables();
-    print(res);
+    final b = await DBController.instance.database;
+    List<Map<String, dynamic>> a = await b.query('Infractions');
+    for (dynamic queri in a) {
+      print(queri);
+    }
+
+    //final res = await dbcontroller.nextFolioForAgent(2);
+    //print(res);
   });
 }

@@ -79,6 +79,7 @@ class DBController {
         testigo2 TEXT NOT NULL,
         agent_id INTEGER NOT NULL,
         timestamp TEXT NOT NULL,
+        folio INT NOT NULL,
 
         FOREIGN KEY (agent_id) REFERENCES Agents(id) ON DELETE CASCADE
       )
@@ -128,6 +129,7 @@ class DBController {
       'testigo2': 'María García',
       'agent_id': 1,
       'timestamp': DateTime.now().toIso8601String(),
+      'folio': 1,
     });
   }
 
@@ -174,6 +176,20 @@ class DBController {
     } catch (e) {
       print('JSON1 not available: $e');
       return null;
+    }
+  }
+
+  /// Busca el folio máximo creado por el agente y lo retorna incrementado en +1
+  static Future<dynamic> nextFolioForAgent(int agentId) async {
+    final db = await DBController.instance.database;
+    final exiting2 = await db.rawQuery(
+      "SELECT MAX(folio) FROM Infractions WHERE agent_id = $agentId",
+    );
+    dynamic c = exiting2[0]['MAX(folio)'];
+    if (c == null) {
+      return 1;
+    } else {
+      return c + 1;
     }
   }
 }
