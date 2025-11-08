@@ -121,7 +121,7 @@ class _MenuScreenState extends State<MenuScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              "Bienvenido ${_userName.substring(0, _userName.indexOf(" "))}",
+              "Bienvenido ${_userName}",
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             SizedBox(height: 20),

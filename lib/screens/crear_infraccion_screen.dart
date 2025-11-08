@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -16,11 +18,10 @@ class CrearInfraccionScreen extends StatefulWidget {
 }
 
 class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
-  final formKey = GlobalKey<FormState>();
   final scrollController = ScrollController();
   bool isSaving = false;
-  bool formLocked = false;
-  Map<String, dynamic>? lastSavedInfraccion;
+  bool formLocked = false; // To lock the form once user saved a record
+  Map<String, dynamic>? lastSavedInfraccion; // To show the generated PDF
   int? lastSavedInfraccionId;
 
   // Form controllers
@@ -57,6 +58,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     loadInitialData();
   }
 
+  /// Does queries to the DB and sets values to be used on selectors
   Future<void> loadInitialData() async {
     try {
       // Load reglamentos from text file
@@ -245,10 +247,6 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   }
 
   Future<void> guardarInfraccion() async {
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
-
     final prefs = await SharedPreferences.getInstance();
     final db = await DBController.instance.database;
 
@@ -431,7 +429,6 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
             ),
       ),
       body: Form(
-        key: formKey,
         child: SingleChildScrollView(
           controller: scrollController,
 

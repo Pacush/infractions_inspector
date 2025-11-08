@@ -16,8 +16,8 @@ class ConsultarInfraccionScreen extends StatefulWidget {
 
 class _ConsultarInfraccionScreenState extends State<ConsultarInfraccionScreen> {
   List<Map<String, dynamic>> _rows = [];
-  bool _loading = false;
-  String _query = '';
+  bool loading = false;
+  String query = '';
 
   @override
   void initState() {
@@ -25,9 +25,10 @@ class _ConsultarInfraccionScreenState extends State<ConsultarInfraccionScreen> {
     refresh();
   }
 
+  /// Updates the existing records (_rows List) stored on Infractions table, ordered by date and time
   Future<void> refresh() async {
     setState(() {
-      _loading = true;
+      loading = true;
     });
     try {
       final db = await DBController.instance.database;
@@ -36,73 +37,54 @@ class _ConsultarInfraccionScreenState extends State<ConsultarInfraccionScreen> {
         _rows = List<Map<String, dynamic>>.from(rows);
       });
     } catch (e) {
-      // show error
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error leyendo la base de datos: $e')),
+          SnackBar(
+            content: Text(
+              'Error leyendo la base de datos. Por favor intente más tarde',
+            ),
+          ),
         );
       }
     } finally {
       setState(() {
-        _loading = false;
+        loading = false;
       });
     }
   }
 
-  List<Map<String, dynamic>> get _filteredRows {
-    if (_query.isEmpty) return _rows;
-    final q = _query.toLowerCase();
+  /// Returns a list of filtered records based on current values of 'query'
+  /// Query is updated by the TextField used to filter by Folio
+  List<Map<String, dynamic>> get filteredRows {
+    if (query.isEmpty) return _rows;
+    final q = query.toLowerCase();
     return _rows.where((r) {
-      final folio = (r['folio'] ?? '').toString().toLowerCase();
-      final visitado = (r['visitado_name'] ?? '').toString().toLowerCase();
-      final est = (r['establishment_name'] ?? '').toString().toLowerCase();
-      return folio.contains(q) || visitado.contains(q) || est.contains(q);
+      final folio = r['folio'].toString().toLowerCase();
+      return folio.contains(q);
     }).toList();
   }
 
-  void _showPdfForRow(Map<String, dynamic> row) {
-    // If your stored record isn't exactly the payload PdfGenerator expects,
-    // adapt this mapping to build the required data map.
-    final payload = Map<String, dynamic>.from(row);
-    // ensure concept_ids is a list, not a JSON string
-    if (payload['concept_ids'] is String) {
-      try {
-        final decoded = json.decode(payload['concept_ids'] as String);
-        payload['concept_ids'] = decoded;
-      } catch (_) {
-        // leave as-is
-      }
-    }
-    PdfGenerator.showPdfPreview(context, payload);
-  }
-
-  Widget _buildRowTile(Map<String, dynamic> r) {
-    final id = r['id'];
-    final agent_id = r['agent_id'].toString();
-    final folio = r['folio']?.toString() ?? '';
-    final visitado = r['visitado_name']?.toString() ?? '—';
-    final establishment = r['establishment_name']?.toString() ?? '';
-    final timestamp = r['timestamp']?.toString() ?? '';
+  /// Builds the card (row) for the record received (expecting an Infraction record)
+  Widget buildRecordCard(Map<String, dynamic> r) {
+    final agentId = r['agent_id'].toString();
+    final folio = r['folio'].toString();
+    final visitado = r['visitado_name'].toString();
+    final establishment = r['establishment_name'].toString();
+    final timestamp = r['timestamp'].toString();
     List<String> conceptosList = [];
-    if (r['concept_ids'] != null) {
-      try {
-        final raw = r['concept_ids'];
-        if (raw is String) {
-          final decoded = json.decode(raw) as List;
-          conceptosList = decoded.map((e) => e.toString()).toList();
-        } else if (raw is List) {
-          conceptosList = raw.map((e) => e.toString()).toList();
-        }
-      } catch (_) {}
-    }
+    try {
+      final concepts = r['concept_ids'];
+      final decodedConceptsList =
+          json.decode(concepts)
+              as List; // Converts the list of concepts stored as a String to List type
+      conceptosList = decodedConceptsList.map((e) => e.toString()).toList();
+    } catch (_) {}
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
       child: ExpansionTile(
-        leading: CircleAvatar(
-          child: Text(folio.split('/').last), // show sequence part
-        ),
-        title: Text('Folio: $agent_id/$folio'),
+        leading: CircleAvatar(child: Text('$agentId/$folio')),
+        title: Text('Folio: $agentId/$folio'),
         subtitle: Text('$visitado — $establishment'),
         childrenPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -120,7 +102,7 @@ class _ConsultarInfraccionScreenState extends State<ConsultarInfraccionScreen> {
               IconButton(
                 tooltip: 'Vista previa PDF',
                 icon: const Icon(Icons.picture_as_pdf),
-                onPressed: () => _showPdfForRow(r),
+                onPressed: () => PdfGenerator.showPdfPreview(context, r),
               ),
             ],
           ),
@@ -131,7 +113,7 @@ class _ConsultarInfraccionScreenState extends State<ConsultarInfraccionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final list = _filteredRows;
+    final list = filteredRows;
     return Scaffold(
       appBar: generateAppBar(
         context,
@@ -155,17 +137,21 @@ class _ConsultarInfraccionScreenState extends State<ConsultarInfraccionScreen> {
                 hintText: 'Buscar por folio',
                 border: OutlineInputBorder(),
               ),
-              onChanged: (v) => setState(() => _query = v),
+              onChanged:
+                  (v) => setState(
+                    () => query = v,
+                  ), // When Text is typed, updates the value of 'query' so it can be filtered by 'filteredRows'
             ),
           ),
           Expanded(
             child:
-                _loading
+                loading
                     ? const Center(child: CircularProgressIndicator())
                     : RefreshIndicator(
                       onRefresh: refresh,
                       child:
-                          list.isEmpty
+                          list
+                                  .isEmpty // If there are no Infraction records, just shows a message indicating so
                               ? ListView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 children: const [
@@ -179,7 +165,7 @@ class _ConsultarInfraccionScreenState extends State<ConsultarInfraccionScreen> {
                               )
                               : ListView.builder(
                                 itemCount: list.length,
-                                itemBuilder: (c, i) => _buildRowTile(list[i]),
+                                itemBuilder: (c, i) => buildRecordCard(list[i]),
                               ),
                     ),
           ),
