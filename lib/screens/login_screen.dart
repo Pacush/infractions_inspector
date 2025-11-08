@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool isLoading = false;
   String? errorMessage;
+  bool passwordVisible = false;
 
   Future<void> login() async {
     if (!_formKey.currentState!.validate()) {
@@ -131,8 +132,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: "Contraseña",
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        passwordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          passwordVisible = !passwordVisible;
+                        });
+                      },
+                    ),
                   ),
-                  obscureText: true, // Oculta la contraseña
+                  obscureText: !passwordVisible,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Por favor, ingrese su contraseña";
