@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final agenteId = agente['id'].toString();
 
       final agentePassword = agente['password'];
-      // ----- LÓGICA DE AUTENTICACIÓN SIMULADA -----
+      // Verificación de clave y contraseña
       if (clave == agenteClave && password == agentePassword) {
         try {
           final prefs = await SharedPreferences.getInstance();

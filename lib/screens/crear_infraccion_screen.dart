@@ -21,6 +21,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   final nombreVisitadoController = TextEditingController();
   final numIdentificacionController = TextEditingController();
   final nombreEstablecimientoController = TextEditingController();
+  final giroOtroController = TextEditingController();
   final calleController = TextEditingController();
   final numExtController = TextEditingController();
   final numIntController = TextEditingController();
@@ -38,14 +39,10 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
 
   // Data lists
   final List<String> tiposIdentificacion = ['INE', 'Pasaporte'];
-  final List<String> giros = [
-    'Tienda',
-    'Restaurante',
-    'Cafetería',
-    'Otro',
-  ]; //TODO: Make dynamic
+  final List<String> giros = ['Tienda', 'Restaurante', 'Cafetería', 'Otro'];
   List<String> reglamentos = [];
   List<Map<String, dynamic>> conceptos = [];
+  List<Map<String, dynamic>> filteredConceptos = [];
   List<Map<String, dynamic>> agentes = [];
 
   @override
@@ -74,6 +71,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
       setState(() {
         reglamentos = loadedReglamentos;
         conceptos = loadedConceptos;
+        filteredConceptos = loadedConceptos;
         agentes = loadedAgentes;
       });
     } catch (e) {
@@ -83,18 +81,21 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     }
   }
 
-  Future<void> updateAllowedConceptos(List reglamentos) async {
-    reglamentos.clear();
-    int i = conceptos.length;
-    List<String> newReglamentos = [];
-    while (i > 0) {
-      String reglamento = conceptos[i]['legal_basis'].toString();
-      List<String> parts = reglamento.split(RegExp(r'\s+'));
-      String articulo = parts.take(2).join(' ');
-      newReglamentos.add(articulo);
+  Future<void> updateAllowedConceptos(List<String> reglamentos) async {
+    List<Map<String, dynamic>> newConceptos = [];
+
+    for (final concepto in conceptos) {
+      final String reglamentoFromConcepto = concepto['legal_basis'].toString();
+      final List<String> parts = reglamentoFromConcepto.split(RegExp(r'\s+'));
+      final String articuloFromConcepto = parts.take(2).join(' ');
+
+      if (reglamentos.contains(articuloFromConcepto)) {
+        newConceptos.add(concepto);
+      }
     }
+
     setState(() {
-      reglamentos = newReglamentos;
+      filteredConceptos = newConceptos;
     });
   }
 
@@ -148,7 +149,11 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(tempSelected),
+              onPressed: () async {
+                // Update allowed conceptos based on the temporary reglamentos selection
+                await updateAllowedConceptos(tempSelected);
+                Navigator.of(context).pop(tempSelected);
+              },
               child: const Text('OK'),
             ),
           ],
@@ -160,18 +165,20 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
       setState(() {
         reglamentosSeleccionados = result;
       });
+      // Update allowed conceptos after the selection has been applied
+      await updateAllowedConceptos(result);
     }
   }
 
-  Future<void> _showConceptosDialog() async {
-    int? tempSelected =
-        conceptosSeleccionados.isNotEmpty ? conceptosSeleccionados.first : null;
+  Future<void> showConceptosSelector() async {
+    // Multi-select dialog for conceptos (store list of ids)
+    final List<int> tempSelected = List<int>.from(conceptosSeleccionados);
 
-    final result = await showDialog<int?>(
+    final result = await showDialog<List<int>>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Seleccionar concepto principal'),
+          title: const Text('Seleccionar conceptos'),
           content: SizedBox(
             width: double.maxFinite,
             child: StatefulBuilder(
@@ -179,20 +186,26 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                 return Scrollbar(
                   child: ListView.builder(
                     shrinkWrap: true,
-                    itemCount: conceptos.length,
+                    itemCount: filteredConceptos.length,
                     itemBuilder: (context, index) {
-                      final c = conceptos[index];
-                      final id = c['id'] as int?;
+                      final c = filteredConceptos[index];
+                      final id = (c['id'] is int) ? c['id'] as int : index;
                       final name = c['name']?.toString() ?? 'Concepto $index';
                       final subtitle = c['legal_basis']?.toString();
-                      return RadioListTile<int>(
-                        value: id ?? index,
-                        groupValue: tempSelected,
+                      final checked = tempSelected.contains(id);
+                      return CheckboxListTile(
+                        value: checked,
                         title: Text(name),
                         subtitle: subtitle != null ? Text(subtitle) : null,
-                        onChanged: (int? v) {
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (bool? v) {
                           setState(() {
-                            tempSelected = v;
+                            if (v == true) {
+                              if (!tempSelected.contains(id))
+                                tempSelected.add(id);
+                            } else {
+                              tempSelected.remove(id);
+                            }
                           });
                         },
                       );
@@ -218,7 +231,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
 
     if (result != null) {
       setState(() {
-        conceptosSeleccionados = [result];
+        conceptosSeleccionados = result;
       });
     }
   }
@@ -238,7 +251,8 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
       final addressData = {
         'calle': calleController.text,
         'ext_num': numExtController.text,
-        'interior_num': numIntController.text,
+        'interior_num':
+            numIntController.text == '' ? null : numIntController.text,
         'colonia': coloniaController.text,
         'entrecalle1': entrecalle1Controller.text,
         'entrecalle2': entrecalle2Controller.text,
@@ -249,13 +263,16 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         'visitado_identification': tipoIdentificacion,
         'num_identificacion': numIdentificacionController.text,
         'establishment_name': nombreEstablecimientoController.text,
-        'establishment_business': giroSeleccionado,
+        'establishment_business':
+            giroSeleccionado == 'Otro'
+                ? giroOtroController.text
+                : giroSeleccionado,
         'establishment_address': jsonEncode(addressData),
         'reglamento': jsonEncode(reglamentosSeleccionados),
-        // Save the primary concept id (first selected) to match DB schema (INTEGER FK)
-        'concept_id':
+        // Save the list of selected concept ids as JSON so DB can store multiple concepts
+        'concept_ids':
             conceptosSeleccionados.isNotEmpty
-                ? conceptosSeleccionados.first
+                ? jsonEncode(conceptosSeleccionados)
                 : null,
         'testigo1': testigo1Controller.text,
         'testigo2': testigo2Controller.text,
@@ -287,11 +304,54 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     // TODO: Generate and show PDF preview
   }
 
+  Future<void> showAgentSelector(TextEditingController controller) async {
+    final selected = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Seleccionar agente'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: agentes.length,
+              itemBuilder: (context, index) {
+                final agente = agentes[index];
+                return ListTile(
+                  title: Text(agente['name']?.toString() ?? 'Agente $index'),
+                  subtitle:
+                      agente['badge'] != null
+                          ? Text('Placa: ${agente['badge']}')
+                          : null,
+                  onTap: () {
+                    Navigator.of(context).pop(agente);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+    if (selected != null) {
+      setState(() {
+        controller.text = selected['name']?.toString() ?? '';
+      });
+    }
+  }
+
   @override
   void dispose() {
     nombreVisitadoController.dispose();
     numIdentificacionController.dispose();
     nombreEstablecimientoController.dispose();
+    giroOtroController.dispose();
     calleController.dispose();
     numExtController.dispose();
     numIntController.dispose();
@@ -397,6 +457,21 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                     (value) =>
                         value?.isEmpty == true ? 'Seleccione un giro' : null,
               ),
+              // If 'Otro' is selected, show a text field to input a custom giro
+              if (giroSeleccionado == 'Otro') ...[
+                SizedBox(height: 8),
+                TextFormField(
+                  controller: giroOtroController,
+                  decoration: InputDecoration(labelText: 'Giro (especifique)'),
+                  validator: (value) {
+                    if (giroSeleccionado == 'Otro' &&
+                        (value == null || value.isEmpty)) {
+                      return 'Especifique el giro';
+                    }
+                    return null;
+                  },
+                ),
+              ],
 
               // 3. Domicilio del establecimiento
               SizedBox(height: 24),
@@ -466,125 +541,182 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 24),
               buildSectionTitle('Datos de la infracción'),
               // Reglamentos (opens a dialog to select multiple reglamentos)
-              Text(
-                "Reglamentos",
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              GestureDetector(
-                onTap: showReglamentosSelector,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(padding: const EdgeInsets.only(bottom: 8.0)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 12,
+              FormField<List<String>>(
+                initialValue: reglamentosSeleccionados,
+                builder: (state) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          "Reglamentos",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child:
-                          reglamentosSeleccionados.isEmpty
-                              ? Row(
-                                children: const [
-                                  Expanded(
-                                    child: Text('Seleccione reglamentos'),
+                      GestureDetector(
+                        onTap: () async {
+                          await showReglamentosSelector();
+                          // after selector updates, revalidate this field
+                          state.validate();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child:
+                              reglamentosSeleccionados.isEmpty
+                                  ? Row(
+                                    children: const [
+                                      Expanded(
+                                        child: Text('Seleccione reglamentos'),
+                                      ),
+                                      Icon(Icons.arrow_drop_down),
+                                    ],
+                                  )
+                                  : Row(
+                                    children: [
+                                      Expanded(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children:
+                                                reglamentosSeleccionados
+                                                    .map(
+                                                      (r) => Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              right: 8.0,
+                                                            ),
+                                                        child: Chip(
+                                                          label: Text(r),
+                                                        ),
+                                                      ),
+                                                    )
+                                                    .toList(),
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(Icons.arrow_drop_down),
+                                    ],
                                   ),
-                                  Icon(Icons.arrow_drop_down),
-                                ],
-                              )
-                              : Row(
-                                children: [
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children:
-                                            reglamentosSeleccionados
-                                                .map(
-                                                  (r) => Padding(
+                        ),
+                      ),
+                      if (state.errorText != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6.0, left: 4.0),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              SizedBox(height: 16),
+              // Conceptos (opens a dialog to select one or more conceptos from DB)
+              FormField<List<int>>(
+                initialValue: conceptosSeleccionados,
+
+                builder: (state) {
+                  //state.didChange(conceptosSeleccionados);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          "Conceptos",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          await showConceptosSelector();
+                          state.validate();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child:
+                              conceptosSeleccionados.isEmpty
+                                  ? Row(
+                                    children: const [
+                                      Expanded(
+                                        child: Text('Seleccione conceptos'),
+                                      ),
+                                      Icon(Icons.arrow_drop_down),
+                                    ],
+                                  )
+                                  : Row(
+                                    children: [
+                                      Expanded(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children:
+                                                conceptosSeleccionados.map((
+                                                  id,
+                                                ) {
+                                                  final concept = filteredConceptos
+                                                      .firstWhere(
+                                                        (c) => c['id'] == id,
+                                                        orElse:
+                                                            () => {
+                                                              'name':
+                                                                  id.toString(),
+                                                            },
+                                                      );
+                                                  return Padding(
                                                     padding:
                                                         const EdgeInsets.only(
                                                           right: 8.0,
                                                         ),
-                                                    child: Chip(label: Text(r)),
-                                                  ),
-                                                )
-                                                .toList(),
-                                      ),
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_drop_down),
-                                ],
-                              ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-              // Conceptos (opens a dialog to select one or more conceptos from DB)
-              Text("Conceptos", style: Theme.of(context).textTheme.titleMedium),
-              GestureDetector(
-                onTap: _showConceptosDialog,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(padding: const EdgeInsets.only(bottom: 8.0)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child:
-                          conceptosSeleccionados.isEmpty
-                              ? Row(
-                                children: const [
-                                  Expanded(child: Text('Seleccione conceptos')),
-                                  Icon(Icons.arrow_drop_down),
-                                ],
-                              )
-                              : Row(
-                                children: [
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children:
-                                            conceptosSeleccionados.map((id) {
-                                              final concept = conceptos
-                                                  .firstWhere(
-                                                    (c) => c['id'] == id,
-                                                    orElse:
-                                                        () => {
-                                                          'name': id.toString(),
-                                                        },
+                                                    child: Chip(
+                                                      label: Text(
+                                                        concept['name']
+                                                            .toString(),
+                                                      ),
+                                                    ),
                                                   );
-                                              return Padding(
-                                                padding: const EdgeInsets.only(
-                                                  right: 8.0,
-                                                ),
-                                                child: Chip(
-                                                  label: Text(
-                                                    concept['name'].toString(),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
+                                                }).toList(),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      const Icon(Icons.arrow_drop_down),
+                                    ],
                                   ),
-                                  const Icon(Icons.arrow_drop_down),
-                                ],
-                              ),
-                    ),
-                  ],
-                ),
+                        ),
+                      ),
+                      if (state.errorText != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6.0, left: 4.0),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
 
               // Testigos
@@ -596,7 +728,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(Icons.person_search),
                     onPressed: () {
-                      // TODO: Show agent selection dialog
+                      showAgentSelector(testigo1Controller);
                     },
                   ),
                 ),
@@ -614,7 +746,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(Icons.person_search),
                     onPressed: () {
-                      // TODO: Show agent selection dialog
+                      showAgentSelector(testigo2Controller);
                     },
                   ),
                 ),

@@ -80,7 +80,7 @@ class DBController {
         agent_id INTEGER NOT NULL,
         timestamp TEXT NOT NULL,
 
-        FOREIGN KEY (agent_id) REFERENCES Agents(id) ON DELETE CASCADE,
+        FOREIGN KEY (agent_id) REFERENCES Agents(id) ON DELETE CASCADE
       )
     ''');
 
@@ -123,7 +123,7 @@ class DBController {
       'establishment_business': 'Venta de Abarrotes',
       'establishment_address': jsonEncode(sampleAddress),
       'reglamento': jsonEncode(["12", "15"]),
-      'concept_ids': [1],
+      'concept_ids': jsonEncode([1]),
       'testigo1': 'Juan Pérez',
       'testigo2': 'María García',
       'agent_id': 1,
