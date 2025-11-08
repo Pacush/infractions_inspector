@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-// Generates a themed AppBar. Pass a BuildContext so callers can provide
-// an optional back button behavior. By default the leading button will
-// call Navigator.pop(context) if `showBack` is true and no `onBack` is
-// provided.
+/// Generates the AppBar. Receives context and Text for screen name.
+/// showBack: Bool to indicate if back buttons needs to be shown.
+/// In case it's true, returns to the windows assigned to onBack.
+/// In case onBack is null, returns to the last windows.
 AppBar generateAppBar(
   BuildContext context,
   String screenName, {
