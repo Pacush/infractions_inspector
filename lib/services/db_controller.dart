@@ -84,8 +84,7 @@ class DBController {
         FOREIGN KEY (agent_id) REFERENCES Agents(id) ON DELETE CASCADE
       )
     ''');
-
-    //establishment_address: {calle: a, ext_num: a, interior_num: a, colonia: a, entrecalle1: a, entrecalle2: a}
+    // Formato establishment_address: {calle: a, ext_num: a, interior_num: a, colonia: a, entrecalle1: a, entrecalle2: a}
 
     // Relleno de datos
 
@@ -106,31 +105,6 @@ class DBController {
     for (var concepto in conceptos) {
       await db.insert('Concepts', concepto);
     }
-
-    final sampleAddress = {
-      'calle': 'Paraiso',
-      'ext_num': 95,
-      'interior_num': 5,
-      'colonia': 'Santa Cruz',
-      'entrecalle1': 'Napoles',
-      'entrecalle2': 'Bucalemu',
-    };
-
-    await db.insert('Infractions', {
-      'visitado_name': 'José Sánchez',
-      'visitado_identification': 'INE',
-      'num_identificacion': '1234ADSF',
-      'establishment_name': 'SuSuper',
-      'establishment_business': 'Venta de Abarrotes',
-      'establishment_address': jsonEncode(sampleAddress),
-      'reglamento': jsonEncode(["12", "15"]),
-      'concept_ids': jsonEncode([1]),
-      'testigo1': 'Juan Pérez',
-      'testigo2': 'María García',
-      'agent_id': 1,
-      'timestamp': DateTime.now().toIso8601String(),
-      'folio': 1,
-    });
   }
 
   /// Busca una jefatura por el id.

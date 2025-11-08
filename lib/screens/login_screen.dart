@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:infractions_inspector/components/db_controller.dart';
+import 'package:infractions_inspector/services/db_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'menu_screen.dart';

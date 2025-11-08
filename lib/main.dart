@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:infractions_inspector/components/db_controller.dart';
+import 'package:infractions_inspector/services/db_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/login_screen.dart';
@@ -60,6 +60,20 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.deepOrange,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: AppBarTheme(
+          backgroundColor: const Color.fromARGB(255, 255, 87, 34),
+          iconTheme: const IconThemeData(
+            color: Colors.white,
+          ), // leading (hamburger/back)
+          actionsIconTheme: const IconThemeData(
+            color: Colors.white,
+          ), // actions icons
+          titleTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       home: initialScreen,
       debugShowCheckedModeBanner: false,

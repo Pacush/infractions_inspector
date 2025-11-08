@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:infractions_inspector/components/db_controller.dart';
-import 'package:infractions_inspector/components/pdf_generator.dart';
+import 'package:infractions_inspector/components/app_bar.dart';
+import 'package:infractions_inspector/screens/menu_screen.dart';
+import 'package:infractions_inspector/services/db_controller.dart';
+import 'package:infractions_inspector/services/pdf_generator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CrearInfraccionScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   final formKey = GlobalKey<FormState>();
   final scrollController = ScrollController();
   bool isSaving = false;
+  bool formLocked = false;
   Map<String, dynamic>? lastSavedInfraccion;
   int? lastSavedInfraccionId;
 
@@ -78,9 +81,11 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         agentes = loadedAgentes;
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error cargando datos: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error cargando datos. Por favor intente más tarde'),
+        ),
+      );
     }
   }
 
@@ -298,6 +303,9 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
       // store last saved data for PDF generation
       lastSavedInfraccionId = id as int? ?? id;
       lastSavedInfraccion = Map<String, dynamic>.from(infraccionData);
+      setState(() {
+        formLocked = true;
+      });
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -377,7 +385,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   Future<void> previewPdf() async {
     final prefs = await SharedPreferences.getInstance();
     final agentIdStr = prefs.getString('loggedUserId');
-    final agentId = int.tryParse(agentIdStr ?? '') ?? 0;
+    final agentId = int.parse(agentIdStr ?? '');
     final folio = await DBController.nextFolioForAgent(agentId);
 
     final data = {
@@ -412,22 +420,21 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Crear Infracción',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Color.fromARGB(255, 255, 87, 34),
+      appBar: generateAppBar(
+        context,
+        "Crear infracción",
+        showBack: true,
+        onBack:
+            () => Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => MenuScreen()),
+              (route) => false,
+            ),
       ),
       body: Form(
         key: formKey,
         child: SingleChildScrollView(
           controller: scrollController,
-          
+
           padding: EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -436,6 +443,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               buildSectionTitle('Datos del visitado'),
               TextFormField(
                 controller: nombreVisitadoController,
+                enabled: !formLocked,
                 decoration: InputDecoration(labelText: 'Nombre del visitado'),
                 validator:
                     (value) =>
@@ -453,15 +461,19 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                     tiposIdentificacion.map((tipo) {
                       return DropdownMenuItem(value: tipo, child: Text(tipo));
                     }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    tipoIdentificacion = value!;
-                  });
-                },
+                onChanged:
+                    formLocked
+                        ? null
+                        : (value) {
+                          setState(() {
+                            tipoIdentificacion = value!;
+                          });
+                        },
               ),
               SizedBox(height: 8),
               TextFormField(
                 controller: numIdentificacionController,
+                enabled: !formLocked,
                 decoration: InputDecoration(
                   labelText: 'Número de identificación',
                 ),
@@ -477,6 +489,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               buildSectionTitle('Datos del establecimiento'),
               TextFormField(
                 controller: nombreEstablecimientoController,
+                enabled: !formLocked,
                 decoration: InputDecoration(
                   labelText: 'Nombre del establecimiento',
                 ),
@@ -494,11 +507,14 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                     giros.map((giro) {
                       return DropdownMenuItem(value: giro, child: Text(giro));
                     }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    giroSeleccionado = value!;
-                  });
-                },
+                onChanged:
+                    formLocked
+                        ? null
+                        : (value) {
+                          setState(() {
+                            giroSeleccionado = value!;
+                          });
+                        },
                 validator:
                     (value) =>
                         value?.isEmpty == true ? 'Seleccione un giro' : null,
@@ -508,6 +524,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                 SizedBox(height: 8),
                 TextFormField(
                   controller: giroOtroController,
+                  enabled: !formLocked,
                   decoration: InputDecoration(labelText: 'Giro (especifique)'),
                   validator: (value) {
                     if (giroSeleccionado == 'Otro' &&
@@ -524,6 +541,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               buildSectionTitle('Domicilio del establecimiento'),
               TextFormField(
                 controller: calleController,
+                enabled: !formLocked,
                 decoration: InputDecoration(labelText: 'Calle'),
                 validator:
                     (value) =>
@@ -537,6 +555,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: numExtController,
+                      enabled: !formLocked,
                       decoration: InputDecoration(labelText: 'Número exterior'),
                       validator:
                           (value) =>
@@ -547,6 +566,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: numIntController,
+                      enabled: !formLocked,
                       decoration: InputDecoration(labelText: 'Número interior'),
                     ),
                   ),
@@ -555,6 +575,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 8),
               TextFormField(
                 controller: coloniaController,
+                enabled: !formLocked,
                 decoration: InputDecoration(labelText: 'Colonia'),
                 validator:
                     (value) =>
@@ -565,6 +586,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 8),
               TextFormField(
                 controller: entrecalle1Controller,
+                enabled: !formLocked,
                 decoration: InputDecoration(labelText: 'Entre calle 1'),
                 validator:
                     (value) =>
@@ -575,6 +597,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 8),
               TextFormField(
                 controller: entrecalle2Controller,
+                enabled: !formLocked,
                 decoration: InputDecoration(labelText: 'Entre calle 2'),
                 validator:
                     (value) =>
@@ -601,11 +624,14 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () async {
-                          await showReglamentosSelector();
-                          // after selector updates, revalidate this field
-                          state.validate();
-                        },
+                        onTap:
+                            formLocked
+                                ? null
+                                : () async {
+                                  await showReglamentosSelector();
+                                  // after selector updates, revalidate this field
+                                  state.validate();
+                                },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             vertical: 12,
@@ -686,10 +712,13 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () async {
-                          await showConceptosSelector();
-                          state.validate();
-                        },
+                        onTap:
+                            formLocked
+                                ? null
+                                : () async {
+                                  await showConceptosSelector();
+                                  state.validate();
+                                },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             vertical: 12,
@@ -773,9 +802,12 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                   labelText: 'Testigo 1',
                   suffixIcon: IconButton(
                     icon: Icon(Icons.person_search),
-                    onPressed: () {
-                      showAgentSelector(testigo1Controller);
-                    },
+                    onPressed:
+                        formLocked
+                            ? null
+                            : () {
+                              showAgentSelector(testigo1Controller);
+                            },
                   ),
                 ),
                 validator:
@@ -791,9 +823,12 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                   labelText: 'Testigo 2',
                   suffixIcon: IconButton(
                     icon: Icon(Icons.person_search),
-                    onPressed: () {
-                      showAgentSelector(testigo2Controller);
-                    },
+                    onPressed:
+                        formLocked
+                            ? null
+                            : () {
+                              showAgentSelector(testigo2Controller);
+                            },
                   ),
                 ),
                 validator:
@@ -812,7 +847,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                       child: ElevatedButton.icon(
                         icon: Icon(Icons.preview),
                         label: Text('Vista Previa'),
-                        onPressed: isSaving ? null : previewPdf,
+                        onPressed: (isSaving || formLocked) ? null : previewPdf,
                       ),
                     ),
 
@@ -821,7 +856,8 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                       child: ElevatedButton.icon(
                         icon: Icon(Icons.save),
                         label: Text(isSaving ? 'Guardando...' : 'Guardar'),
-                        onPressed: isSaving ? null : guardarInfraccion,
+                        onPressed:
+                            (isSaving || formLocked) ? null : guardarInfraccion,
                       ),
                     ),
                   ],
@@ -841,6 +877,17 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                     ),
                   ],
                 ],
+              ),
+              SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: Icon(Icons.home),
+                label: Text('Volver al menú'),
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => MenuScreen()),
+                    (route) => false,
+                  );
+                },
               ),
             ],
           ),

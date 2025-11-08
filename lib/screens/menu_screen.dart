@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:infractions_inspector/components/app_bar.dart';
+import 'package:infractions_inspector/screens/consultar_infracciones_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'crear_infraccion_screen.dart';
@@ -71,7 +73,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ),
                   Text(
-                    'Usuario: $_userClave',
+                    'Usuario: $_userName',
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -94,9 +96,11 @@ class _MenuScreenState extends State<MenuScreen> {
               leading: Icon(Icons.search),
               title: Text('Consultar infracciones'),
               onTap: () {
-                // TODO: Navigate to search infractions screen
-                Navigator.pop(context); // Close drawer
-                // Add navigation code here
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => ConsultarInfraccionScreen(),
+                  ),
+                );
               },
             ),
             Divider(), // Adds a line separator
@@ -111,27 +115,18 @@ class _MenuScreenState extends State<MenuScreen> {
           ],
         ),
       ),
-      appBar: AppBar(
-        title: Text(
-          "Menú Principal",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Color.fromARGB(255, 255, 87, 34),
-        iconTheme: IconThemeData(
-          color: Colors.white,
-        ), // Makes drawer icon white
-      ),
+      appBar: generateAppBar(context, "Menú principal"),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              "¡Inicio de sesión exitoso!",
+              "Bienvenido ${_userName.substring(0, _userName.indexOf(" "))}",
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             SizedBox(height: 20),
             Text(
-              "Clave de usuario: $_userClave",
+              "Utliza el menú lateral para acceder a las opciones",
               style: Theme.of(context).textTheme.titleMedium,
             ),
             // Aquí irían tus botones:
