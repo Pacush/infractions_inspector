@@ -8,12 +8,11 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-
+  final formKey = GlobalKey<FormState>();
   final claveController = TextEditingController();
   final passwordController = TextEditingController();
 
@@ -22,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool passwordVisible = false;
 
   Future<void> login() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!formKey.currentState!.validate()) {
       return;
     }
 
@@ -31,25 +30,20 @@ class _LoginScreenState extends State<LoginScreen> {
       errorMessage = null;
     });
 
-    await Future.delayed(Duration(seconds: 1));
-
     final String clave = claveController.text;
     final String password = passwordController.text;
-
     final dbController = DBController.instance;
-
-    /*final db = await DBController.instance.database;
-    deleteDatabase(db.path);*/
 
     final agente = await dbController.getAgentByClave(clave);
     if (agente != null) {
       final agenteClave = agente['clave'].toString();
       final agenteId = agente['id'].toString();
-
       final agentePassword = agente['password'];
-      // Verificación de clave y contraseña
+
+      // Clave and Contraseña verification
       if (clave == agenteClave && password == agentePassword) {
         try {
+          // Saves the information of the User logged in into SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('loggedUserName', agente['name']);
           await prefs.setString('loggedUserId', agenteId);
@@ -60,7 +54,8 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         } catch (e) {
           setState(() {
-            errorMessage = "Error al guardar la sesión: $e";
+            errorMessage =
+                "Error al guardar la sesión. Por favor intente más tarde";
           });
         }
       } else {
@@ -94,12 +89,23 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Form(
-            key: _formKey,
+            key: formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo o Título (Opcional)
+                // Logo (In case lgo.png doesn't load, "logo_placeholder" will show up)
+                Image.asset(
+                  'assets/images/logo.png',
+                  errorBuilder:
+                      (context, error, stackTrace) => Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          "logo_placeholder",
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                ),
                 Text(
                   "Bienvenido",
                   textAlign: TextAlign.center,
@@ -107,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: 32),
 
-                // Campo de clave
+                // Clave TextField
                 TextFormField(
                   controller: claveController,
                   decoration: InputDecoration(
@@ -115,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person),
                   ),
-                  //keyboardType: TextInputType.number, // Teclado numérico
+                  keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Por favor, ingrese su clave";
@@ -125,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: 16),
 
-                // Campo de Contraseña
+                // Contraseña TextField
                 TextFormField(
                   controller: passwordController,
                   decoration: InputDecoration(
@@ -155,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: 24),
 
-                // Mensaje de Error
+                // Error message text in case user is not found or password is incorrect
                 if (errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
@@ -166,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                // Botón de Inicio de Sesión o Indicador de Carga
+                // Login button or Loading icon depending on current state
                 isLoading
                     ? Center(child: CircularProgressIndicator())
                     : ElevatedButton(
@@ -179,6 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(fontSize: 18),
                       ),
                     ),
+                SizedBox(height: 32),
               ],
             ),
           ),

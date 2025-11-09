@@ -14,36 +14,29 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  String _userClave = '';
-  String _userId = '';
-  String _userName = '';
+  String userName = '';
 
   @override
   void initState() {
     super.initState();
-    _loadUserId();
+    loadUserName();
   }
 
-  Future<void> _loadUserId() async {
+  Future<void> loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _userClave = prefs.getString('loggedUserClave') ?? 'Usuario Desconocido';
-      _userId = prefs.getString('loggedUserId') ?? '';
-      _userName = prefs.getString('loggedUserName') ?? '';
+      userName = prefs.getString('loggedUserName') ?? '';
     });
   }
 
-  // Cerrar sesión
-  Future<void> _logout() async {
+  /// Logout, clears SharedPreferences variables and returns to login_screen
+  Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Borrar la clave de SharedPreferences
     await prefs.remove('loggedUserClave');
     await prefs.remove('loggedUserId');
     await prefs.remove('loggedUserName');
 
-    // 2. Regresar a la pantalla de Login
-    // Usamos pushReplacement para que no pueda "volver" al menú
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
@@ -52,6 +45,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Sandwich menu on top left corner
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -73,7 +67,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ),
                   Text(
-                    'Usuario: $_userName',
+                    'Usuario: $userName',
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -88,8 +82,6 @@ class _MenuScreenState extends State<MenuScreen> {
                     builder: (context) => CrearInfraccionScreen(),
                   ),
                 );
-                //Navigator.pop(context); // Close drawer
-                // Add navigation code here
               },
             ),
             ListTile(
@@ -103,13 +95,13 @@ class _MenuScreenState extends State<MenuScreen> {
                 );
               },
             ),
-            Divider(), // Adds a line separator
+            Divider(),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Cerrar sesión'),
               onTap: () {
-                Navigator.pop(context); // Close drawer first
-                _logout(); // Then logout
+                Navigator.pop(context);
+                logout();
               },
             ),
           ],
@@ -121,7 +113,7 @@ class _MenuScreenState extends State<MenuScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              "Bienvenido ${_userName}",
+              "Bienvenido $userName",
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             SizedBox(height: 20),
@@ -129,10 +121,6 @@ class _MenuScreenState extends State<MenuScreen> {
               "Utliza el menú lateral para acceder a las opciones",
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            // Aquí irían tus botones:
-            // - Registrar Infracción
-            // - Ver Registros
-            // - etc.
           ],
         ),
       ),

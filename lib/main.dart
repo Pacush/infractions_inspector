@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:infractions_inspector/services/db_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/login_screen.dart';
@@ -23,20 +22,20 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key, required this.initialScreen});
 
   // Add this test function that will be called from the floating button
-  Future<void> runTestFunction() async {
+  /*Future<void> runTestFunction() async {
     final b = await DBController.instance.database;
     List<Map<String, dynamic>> a = await b.rawQuery(
       'SELECT * FROM Infractions WHERE agent_id = 4',
     );
     for (dynamic queri in a) {
-      print(queri);
+      queri;
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      builder: (context, child) {
+      /*builder: (context, child) {
         return Overlay(
           initialEntries: [
             OverlayEntry(builder: (context) => child!),
@@ -55,19 +54,15 @@ class MyApp extends StatelessWidget {
             ),
           ],
         );
-      },
+      },*/
       title: 'Infractions Inspector',
       theme: ThemeData(
         primarySwatch: Colors.deepOrange,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: AppBarTheme(
           backgroundColor: const Color.fromARGB(255, 255, 87, 34),
-          iconTheme: const IconThemeData(
-            color: Colors.white,
-          ), // leading (hamburger/back)
-          actionsIconTheme: const IconThemeData(
-            color: Colors.white,
-          ), // actions icons
+          iconTheme: const IconThemeData(color: Colors.white),
+          actionsIconTheme: const IconThemeData(color: Colors.white),
           titleTextStyle: const TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -77,51 +72,6 @@ class MyApp extends StatelessWidget {
       ),
       home: initialScreen,
       debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

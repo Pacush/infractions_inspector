@@ -8,9 +8,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class PdfGenerator {
-  /// Compute next folio for an agent in format 'agentId/seq'
-
   /// Build PDF bytes from infraction data map.
+  ///
+  /// [data] Receives an Infraction record
   static Future<Uint8List> buildPdfBytes(Map<String, dynamic> data) async {
     final folioFormatted = "${data['agent_id']}/${data['folio']}";
     final pdf = pw.Document();
@@ -26,6 +26,7 @@ class PdfGenerator {
       logo = null;
     }
 
+    // Gets agent name based on agent_id
     final db = await DBController.instance.database;
     final agentId =
         data['agent_id'] is int
@@ -40,6 +41,8 @@ class PdfGenerator {
       );
       if (rows.isNotEmpty) agent = rows.first;
     }
+
+    // Gets Jefatura name based on jefatura_id
     Map<String, dynamic>? jef;
     if (agent != null && agent['jefatura_id'] != null) {
       jef = await DBController.instance.getJefatura(
@@ -47,7 +50,7 @@ class PdfGenerator {
       );
     }
 
-    // Concepts
+    // Gets list of Concepts
     List<int> conceptIds = [];
     try {
       final decoded = json.decode(data['concept_ids']?.toString() ?? '[]');
@@ -74,7 +77,7 @@ class PdfGenerator {
       final idx = lower.indexOf('artículo');
       if (idx >= 0) {
         regl = lb.substring(0, idx).trim();
-        // attempt to parse number after 'Artículo'
+        // Parse number after 'Artículo'
         final after = lb.substring(idx + 'artículo'.length);
         final m = RegExp(r"(\d+)").firstMatch(after);
         if (m != null) art = int.tryParse(m.group(0) ?? '0') ?? 0;
@@ -210,7 +213,9 @@ class PdfGenerator {
     return pdf.save();
   }
 
-  /// Show a PDF preview route
+  /// Show a PDF preview.
+  ///
+  /// [data] Receives an Infraction record
   static void showPdfPreview(BuildContext context, Map<String, dynamic> data) {
     Navigator.of(context).push(
       MaterialPageRoute(

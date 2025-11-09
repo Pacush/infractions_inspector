@@ -18,9 +18,8 @@ class DBController {
     return _database!;
   }
 
-  // --- Inicialización de la BD ---
+  // --- DB initalization ---
   initDatabase() async {
-    // Obtiene la ruta de almacenamiento de documentos específica de la app
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, databaseName);
 
@@ -29,15 +28,13 @@ class DBController {
       version: databaseVersion,
       onCreate: _onCreate,
       onConfigure: (db) async {
-        // Enable foreign key constraints
         await db.execute('PRAGMA foreign_keys = ON');
       },
     );
   }
 
+  /// Creation of DB tables (Departments, Agents, Concepts, Infractions)
   Future _onCreate(Database db, int version) async {
-    // Creacion de tablas
-
     await db.execute('''
       CREATE TABLE Departments (
         id INTEGER PRIMARY KEY,
@@ -84,10 +81,10 @@ class DBController {
         FOREIGN KEY (agent_id) REFERENCES Agents(id) ON DELETE CASCADE
       )
     ''');
-    // Formato establishment_address: {calle: a, ext_num: a, interior_num: a, colonia: a, entrecalle1: a, entrecalle2: a}
+    // establishment_address format used along the project:
+    //{calle: a, ext_num: a, interior_num: a, colonia: a, entrecalle1: a, entrecalle2: a}
 
-    // Relleno de datos
-
+    // Data filling
     String jsonString = await rootBundle.loadString('assets/jefaturas.json');
     List<dynamic> jefaturas = json.decode(jsonString);
     for (var jefatura in jefaturas) {
@@ -107,7 +104,7 @@ class DBController {
     }
   }
 
-  /// Busca una jefatura por el id.
+  /// Looks up for a Jefatura based on ID
   Future<Map<String, dynamic>?> getJefatura(int id) async {
     final db = await instance.database;
     final res = await db.query('Departments', where: 'id = ?', whereArgs: [id]);
@@ -119,7 +116,7 @@ class DBController {
     }
   }
 
-  /// Busca a un agente por la clave
+  /// Looks up for an Agente based on ID
   Future<Map<String, dynamic>?> getAgentByClave(String clave) async {
     final db = await instance.database;
     final res = await db.query(
@@ -134,25 +131,7 @@ class DBController {
     }
   }
 
-  Future<List<String>> listTables() async {
-    final db = await instance.database;
-    final res = await db.rawQuery(
-      "SELECT name FROM sqlite_master WHERE type='table'",
-    );
-    return res.map((r) => r.values.first.toString()).toList();
-  }
-
-  Future<Map<String, dynamic>?> testJson() async {
-    try {
-      final db = await instance.database;
-      final res = await db.query('Infractions');
-      return (res.first);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Busca el folio máximo creado por el agente y lo retorna incrementado en +1
+  /// Looks up for the highest folio created by the agent ([agentId]) and returns it increased by +1
   static Future<dynamic> nextFolioForAgent(int agentId) async {
     final db = await DBController.instance.database;
     final exiting2 = await db.rawQuery(
