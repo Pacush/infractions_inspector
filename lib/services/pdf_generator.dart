@@ -12,8 +12,7 @@ class PdfGenerator {
 
   /// Build PDF bytes from infraction data map.
   static Future<Uint8List> buildPdfBytes(Map<String, dynamic> data) async {
-    final folioFormatted =
-        data['agent_id'].toString() + "/" + data['folio'].toString();
+    final folioFormatted = "${data['agent_id']}/${data['folio']}";
     final pdf = pw.Document();
     // Load logo if available
     pw.ImageProvider? logo;
@@ -224,5 +223,3 @@ class PdfGenerator {
     );
   }
 }
-
-

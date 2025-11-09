@@ -49,7 +49,8 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
   final List<String> giros = ['Tienda', 'Restaurante', 'Cafetería', 'Otro'];
   List<String> reglamentos = [];
   List<Map<String, dynamic>> conceptos = [];
-  List<Map<String, dynamic>> filteredConceptos = [];
+  List<Map<String, dynamic>> filteredConceptos =
+      []; // List of allowed Conceptos to be chosen out of the Reglamentos selected
   List<Map<String, dynamic>> agentes = [];
 
   @override
@@ -91,10 +92,13 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     }
   }
 
+  /// Updates the conceptos allowed to be selected (filteredConceptos) based on the reglamentos List received
   Future<void> updateAllowedConceptos(List<String> reglamentos) async {
     List<Map<String, dynamic>> newConceptos = [];
 
     for (final concepto in conceptos) {
+      /* Picks the 'Articulo ##' section out of legal_basis from each
+      Concepto and compares it with the reglamentos selected */
       final String reglamentoFromConcepto = concepto['legal_basis'].toString();
       final List<String> parts = reglamentoFromConcepto.split(RegExp(r'\s+'));
       final String articuloFromConcepto = parts.take(2).join(' ');
@@ -125,7 +129,6 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               builder: (context, setState) {
                 return Scrollbar(
                   child: ListView.builder(
-                    shrinkWrap: true,
                     itemCount: reglamentos.length,
                     itemBuilder: (context, index) {
                       final r = reglamentos[index];
@@ -134,14 +137,13 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                         value: checked,
                         title: Text(r),
                         controlAffinity: ListTileControlAffinity.leading,
-                        onChanged: (bool? v) {
+                        onChanged: (bool? changed) {
                           setState(() {
-                            if (v == true) {
-                              if (!tempSelected.contains(r)) {
+                            if (changed == true) {
+                              if (!checked) {
                                 tempSelected.add(r);
                               }
                             } else {
-                              // allow unselecting
                               tempSelected.remove(r);
                             }
                           });
@@ -171,17 +173,17 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
       },
     );
 
+    // Update allowed conceptos after the selection has been applied
     if (result != null) {
       setState(() {
         reglamentosSeleccionados = result;
       });
-      // Update allowed conceptos after the selection has been applied
+
       await updateAllowedConceptos(result);
     }
   }
 
   Future<void> showConceptosSelector() async {
-    // Multi-select dialog for conceptos (store list of ids)
     final List<int> tempSelected = List<int>.from(conceptosSeleccionados);
 
     final result = await showDialog<List<int>>(
@@ -198,21 +200,26 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                     shrinkWrap: true,
                     itemCount: filteredConceptos.length,
                     itemBuilder: (context, index) {
-                      final c = filteredConceptos[index];
-                      final id = (c['id'] is int) ? c['id'] as int : index;
-                      final name = c['name']?.toString() ?? 'Concepto $index';
-                      final subtitle = c['legal_basis']?.toString();
+                      final concepto = filteredConceptos[index];
+                      final id =
+                          (concepto['id'] is int)
+                              ? concepto['id'] as int
+                              : index;
+                      final name =
+                          concepto['name']?.toString() ?? 'Concepto $index';
+                      final subtitle = concepto['legal_basis']?.toString();
                       final checked = tempSelected.contains(id);
                       return CheckboxListTile(
                         value: checked,
                         title: Text(name),
                         subtitle: subtitle != null ? Text(subtitle) : null,
                         controlAffinity: ListTileControlAffinity.leading,
-                        onChanged: (bool? v) {
+                        onChanged: (bool? changed) {
                           setState(() {
-                            if (v == true) {
-                              if (!tempSelected.contains(id))
+                            if (changed == true) {
+                              if (!checked) {
                                 tempSelected.add(id);
+                              }
                             } else {
                               tempSelected.remove(id);
                             }
@@ -265,7 +272,6 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         'entrecalle2': entrecalle2Controller.text,
       };
 
-      // compute folio: inspectorId/secuencial (secuencial = max existing + 1)
       final agentIdStr = prefs.getString('loggedUserId');
       final agentId = int.tryParse(agentIdStr ?? '') ?? 0;
       final folio = await DBController.nextFolioForAgent(agentId);
@@ -275,40 +281,38 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
         'visitado_identification': tipoIdentificacion,
         'num_identificacion': numIdentificacionController.text,
         'establishment_name': nombreEstablecimientoController.text,
-        'establishment_business':
+        'establishment_business': // In case 'Otro' is selected from 'Giro' selector, uses the value of the TextField
             giroSeleccionado == 'Otro'
                 ? giroOtroController.text
                 : giroSeleccionado,
         'establishment_address': jsonEncode(addressData),
         'reglamento': jsonEncode(reglamentosSeleccionados),
-        // Save the list of selected concept ids as JSON so DB can store multiple concepts
-        'concept_ids':
-            conceptosSeleccionados.isNotEmpty
-                ? jsonEncode(conceptosSeleccionados)
-                : jsonEncode([]),
+        'concept_ids': jsonEncode(conceptosSeleccionados),
         'folio': folio,
         'testigo1': testigo1Controller.text,
         'testigo2': testigo2Controller.text,
-        'agent_id': prefs.getString('loggedUserId'),
+        'agent_id': agentIdStr,
         'timestamp': DateTime.now().toIso8601String(),
       };
 
       final id = await db.insert('Infractions', infraccionData);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Infracción guardada con ID: $id')),
+        SnackBar(
+          content: Text('Infracción guardada con el folio: $agentIdStr/$folio'),
+        ),
       );
 
-      // store last saved data for PDF generation
+      // Save the infraction created to generate the PDF
       lastSavedInfraccionId = id as int? ?? id;
       lastSavedInfraccion = Map<String, dynamic>.from(infraccionData);
       setState(() {
-        formLocked = true;
+        formLocked =
+            true; // Locks the form so it can't be modified once the infraction saved
       });
     } catch (e) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
-      print(e);
     } finally {
       setState(() {
         isSaving = false;
@@ -334,11 +338,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               itemBuilder: (context, index) {
                 final agente = agentes[index];
                 return ListTile(
-                  title: Text(agente['name']?.toString() ?? 'Agente $index'),
-                  subtitle:
-                      agente['badge'] != null
-                          ? Text('Placa: ${agente['badge']}')
-                          : null,
+                  title: Text(agente['name'].toString()),
                   onTap: () {
                     Navigator.of(context).pop(agente);
                   },
@@ -380,6 +380,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
     super.dispose();
   }
 
+  // Generates the PDF based on the information currently filled in the form
   Future<void> previewPdf() async {
     final prefs = await SharedPreferences.getInstance();
     final agentIdStr = prefs.getString('loggedUserId');
@@ -436,7 +437,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Datos del visitado
+              // Datos del visitado
               buildSectionTitle('Datos del visitado'),
               TextFormField(
                 controller: nombreVisitadoController,
@@ -481,7 +482,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                             : null,
               ),
 
-              // 2. Datos del establecimiento
+              // Datos del establecimiento
               SizedBox(height: 24),
               buildSectionTitle('Datos del establecimiento'),
               TextFormField(
@@ -516,7 +517,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                     (value) =>
                         value?.isEmpty == true ? 'Seleccione un giro' : null,
               ),
-              // If 'Otro' is selected, show a text field to input a custom giro
+              // If 'Otro' is selected, show a text field to input a custom 'Giro'
               if (giroSeleccionado == 'Otro') ...[
                 SizedBox(height: 8),
                 TextFormField(
@@ -533,7 +534,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                 ),
               ],
 
-              // 3. Domicilio del establecimiento
+              // Domicilio del establecimiento
               SizedBox(height: 24),
               buildSectionTitle('Domicilio del establecimiento'),
               TextFormField(
@@ -603,10 +604,9 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                             : null,
               ),
 
-              // 4. Datos de la infracción
+              // Datos de la infracción
               SizedBox(height: 24),
               buildSectionTitle('Datos de la infracción'),
-              // Reglamentos (opens a dialog to select multiple reglamentos)
               FormField<List<String>>(
                 initialValue: reglamentosSeleccionados,
                 builder: (state) {
@@ -626,7 +626,6 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                                 ? null
                                 : () async {
                                   await showReglamentosSelector();
-                                  // after selector updates, revalidate this field
                                   state.validate();
                                 },
                         child: Container(
@@ -692,12 +691,10 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                 },
               ),
               SizedBox(height: 16),
-              // Conceptos (opens a dialog to select one or more conceptos from DB)
               FormField<List<int>>(
                 initialValue: conceptosSeleccionados,
 
                 builder: (state) {
-                  //state.didChange(conceptosSeleccionados);
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -795,6 +792,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 16),
               TextFormField(
                 controller: testigo1Controller,
+                enabled: !formLocked,
                 decoration: InputDecoration(
                   labelText: 'Testigo 1',
                   suffixIcon: IconButton(
@@ -816,6 +814,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
               SizedBox(height: 8),
               TextFormField(
                 controller: testigo2Controller,
+                enabled: !formLocked,
                 decoration: InputDecoration(
                   labelText: 'Testigo 2',
                   suffixIcon: IconButton(
@@ -835,7 +834,7 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                             : null,
               ),
 
-              // 5. Acciones
+              // Botones
               SizedBox(height: 32),
               Row(
                 children: [
@@ -876,16 +875,6 @@ class _CrearInfraccionScreenState extends State<CrearInfraccionScreen> {
                 ],
               ),
               SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: Icon(Icons.home),
-                label: Text('Volver al menú'),
-                onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => MenuScreen()),
-                    (route) => false,
-                  );
-                },
-              ),
             ],
           ),
         ),

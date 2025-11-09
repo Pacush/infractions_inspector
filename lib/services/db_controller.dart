@@ -148,7 +148,6 @@ class DBController {
       final res = await db.query('Infractions');
       return (res.first);
     } catch (e) {
-      print('JSON1 not available: $e');
       return null;
     }
   }

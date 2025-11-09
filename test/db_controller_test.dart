@@ -35,7 +35,7 @@ void main() {
     final b = await DBController.instance.database;
     List<Map<String, dynamic>> a = await b.query('Infractions');
     for (dynamic queri in a) {
-      print(queri);
+      queri;
     }
 
     //final res = await dbcontroller.nextFolioForAgent(2);
