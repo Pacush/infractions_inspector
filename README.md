@@ -6,32 +6,38 @@ Sigue estos pasos para configurar y ejecutar el proyecto en tu máquina local.
 
 ### 1. Prerrequisitos
 
-Asegúrate de tener el [Flutter SDK](https://flutter.dev/docs/get-started/install) instalado y configurado en tu sistema.
+Asegurarse de tener el [Flutter SDK](https://flutter.dev/docs/get-started/install) instalado y configurado en el sistema.
 
 ### 2. Configuración del `pubspec.yaml`
 
-Para que el proyecto funcione, tu archivo `pubspec.yaml` debe incluir las dependencias que se importan en el código y, muy importante, debe registrar los archivos de `assets`.
+Para que el proyecto funcione, el archivo `pubspec.yaml` debe incluir las dependencias que se importan en el código y registrar los archivos de `assets`.
 
 #### A. Dependencias
 
-Asegúrate de que tu sección `dependencies` contenga todos los paquetes utilizados:
+Asegurarse de que `dependencies` contenga todos los paquetes utilizados:
 
 ```yaml
 dependencies:
   flutter:
     sdk: flutter
-  
-  # Para la base de datos
-  sqflite_common_ffi: ^[VERSIÓN] 
-  path_provider: ^[VERSIÓN]
-  path: ^[VERSIÓN]
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.3
+  path_provider: ^2.1.5
+  intl: ^0.20.2
+  flutter_form_builder: ^10.0.1
+  dropdown_search: ^6.0.2
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  sqflite_common_ffi: ^2.3.6
 
-  # Para la sesión de usuario
-  shared_preferences: ^[VERSIÓN]
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/jefaturas.json
+    - assets/agentes.json
+    - assets/conceptos.json
+    - assets/reglamento.txt
+    - assets/images/logo.png
 
-  # Para la generación de PDF
-  pdf: ^[VERSIÓN]
-  printing: ^[VERSIÓN]
-
-  # Iconos (si los usas, ej. cupertino_icons)
-  cupertino_icons: ^1.0.2
