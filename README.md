@@ -55,16 +55,16 @@ flutter:
 
 Una vez completados los pasos anteriores, ya puedes ejecutar la aplicación:
 
-1.  **Instala las dependencias** (después de guardar los cambios en `pubspec.yaml`):
+1. **Instala las dependencias** (después de guardar los cambios en `pubspec.yaml`):
 
 ```bash
     flutter pub get
 ```
 
-2.  **Ejecuta la aplicación**:
+2. **Ejecuta la aplicación**:
+
 ```bash
     flutter run
 ```
 
 La aplicación debería iniciarse, crear la base de datos `infractions_inspector.db`, poblarla con los datos de los archivos JSON y mostrar la pantalla de login.
-
