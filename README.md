@@ -68,3 +68,8 @@ Una vez completados los pasos anteriores, ya puedes ejecutar la aplicación:
 ```
 
 La aplicación debería iniciarse, crear la base de datos `infractions_inspector.db`, poblarla con los datos de los archivos JSON y mostrar la pantalla de login.
+
+
+
+### Link del apk (publicada a Releases):
+https://github.com/Pacush/infractions_inspector/releases/tag/release
