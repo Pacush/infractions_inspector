@@ -1,4 +1,4 @@
-name: infractions_inspector
+name: Infractions for Inspectors
 description: "App to track infractions by agent."
 publish_to: 'none'
 version: 0.1.0
