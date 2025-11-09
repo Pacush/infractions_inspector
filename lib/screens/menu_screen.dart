@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:infractions_inspector/components/app_bar.dart';
+import 'package:infractions_inspector/screens/consultar_infracciones_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'login_screen.dart'; // Importamos el login para navegar de regreso
+import 'crear_infraccion_screen.dart';
+import 'login_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -11,31 +14,29 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  String _userClave = '';
+  String userName = '';
 
   @override
   void initState() {
     super.initState();
-    _loadUserId();
+    loadUserName();
   }
 
-  // Método para cargar el ID y mostrarlo (opcional)
-  Future<void> _loadUserId() async {
+  Future<void> loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _userClave = prefs.getString('loggedUserClave') ?? 'Usuario Desconocido';
+      userName = prefs.getString('loggedUserName') ?? '';
     });
   }
 
-  // Método para cerrar sesión
-  Future<void> _logout() async {
+  /// Logout, clears SharedPreferences variables and returns to login_screen
+  Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Borrar la clave de SharedPreferences
     await prefs.remove('loggedUserClave');
+    await prefs.remove('loggedUserId');
+    await prefs.remove('loggedUserName');
 
-    // 2. Regresar a la pantalla de Login
-    // Usamos pushReplacement para que no pueda "volver" al menú
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
@@ -44,6 +45,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Sandwich menu on top left corner
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -54,7 +56,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Menú',
@@ -64,9 +66,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 8),
                   Text(
-                    'Usuario: $_userClave',
+                    'Usuario: $userName',
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -76,59 +77,50 @@ class _MenuScreenState extends State<MenuScreen> {
               leading: Icon(Icons.edit_document),
               title: Text('Crear infracción'),
               onTap: () {
-                // TODO: Navigate to create infraction screen
-                Navigator.pop(context); // Close drawer
-                // Add navigation code here
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => CrearInfraccionScreen(),
+                  ),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.search),
               title: Text('Consultar infracciones'),
               onTap: () {
-                // TODO: Navigate to search infractions screen
-                Navigator.pop(context); // Close drawer
-                // Add navigation code here
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => ConsultarInfraccionScreen(),
+                  ),
+                );
               },
             ),
-            Divider(), // Adds a line separator
+            Divider(),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Cerrar sesión'),
               onTap: () {
-                Navigator.pop(context); // Close drawer first
-                _logout(); // Then logout
+                Navigator.pop(context);
+                logout();
               },
             ),
           ],
         ),
       ),
-      appBar: AppBar(
-        title: Text(
-          "Menú Principal",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Color.fromARGB(255, 255, 87, 34),
-        iconTheme: IconThemeData(
-          color: Colors.white,
-        ), // Makes drawer icon white
-      ),
+      appBar: generateAppBar(context, "Menú principal"),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              "¡Inicio de sesión exitoso!",
+              "Bienvenido $userName",
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             SizedBox(height: 20),
             Text(
-              "Clave de usuario: $_userClave",
+              "Utliza el menú lateral para acceder a las opciones",
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            // Aquí irían tus botones:
-            // - Registrar Infracción
-            // - Ver Registros
-            // - etc.
           ],
         ),
       ),

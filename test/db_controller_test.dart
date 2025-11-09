@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:infractions_inspector/components/db_controller.dart';
+import 'package:infractions_inspector/services/db_controller.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -32,8 +32,13 @@ void main() {
   });
 
   test('hola', () async {
-    final dbcontroller = DBController.instance;
-    final res = await dbcontroller.listTables();
-    print(res);
+    final b = await DBController.instance.database;
+    List<Map<String, dynamic>> a = await b.query('Infractions');
+    for (dynamic queri in a) {
+      queri;
+    }
+
+    //final res = await dbcontroller.nextFolioForAgent(2);
+    //print(res);
   });
 }
