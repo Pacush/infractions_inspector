@@ -31,13 +31,14 @@ dependencies:
   sqflite: ^2.4.2
   path: ^1.9.1
   sqflite_common_ffi: ^2.3.6
-
+```
 
 #### B. Assets
 
 La aplicación carga varios archivos JSON y un logo. El pubspec.yaml debe incluirlos para que la app no falle al iniciar o al crear la base de datos.
 
 Asegúrate de que la sección flutter de tu pubspec.yaml se vea así:
+
 ```yaml
 flutter:
   uses-material-design: true
@@ -48,20 +49,22 @@ flutter:
     - assets/conceptos.json
     - assets/jefaturas.json
     - assets/reglamento.txt
+```
 
 ### 4. Instalar y Ejecutar
 
 Una vez completados los pasos anteriores, ya puedes ejecutar la aplicación:
 
 1.  **Instala las dependencias** (después de guardar los cambios en `pubspec.yaml`):
-    ```bash
+
+```bash
     flutter pub get
-    ```
+```
 
 2.  **Ejecuta la aplicación**:
-    ```bash
+```bash
     flutter run
-    ```
+```
 
 La aplicación debería iniciarse, crear la base de datos `infractions_inspector.db`, poblarla con los datos de los archivos JSON y mostrar la pantalla de login.
 
